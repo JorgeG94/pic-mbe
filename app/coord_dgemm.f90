@@ -6,7 +6,7 @@ program mpi_dgemm_task_distributor
     implicit none
 
     ! Parameters
-    type(pic_timer_type) :: my_timer
+    type(pic_timer_type) :: my_timer, rank_timer
     integer, parameter :: total_tasks = 32
     integer, parameter :: num_initial = 4
     integer, parameter :: tag_request = 1, tag_work = 2, tag_done = 3
@@ -29,9 +29,12 @@ program mpi_dgemm_task_distributor
     endif
     
     if (rank == 0) then
-        call coordinator(num_procs)
+        call static_coordinator(num_procs)
     else
+        call rank_timer%start()
         call worker(rank)
+        call rank_timer%stop()
+        print *, "Rank", rank, "finished in", rank_timer%get_elapsed_time(), "seconds"
     end if
 
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -44,7 +47,31 @@ program mpi_dgemm_task_distributor
 
 contains
 
-    subroutine coordinator(num_procs)
+subroutine static_coordinator(num_procs)
+    integer, intent(in) :: num_procs
+    integer :: task_id, i, tasks_assigned, target_rank
+    type(MPI_Status) :: status
+
+    tasks_assigned = 0
+
+    ! Distribute all tasks statically
+    do task_id = 0, total_tasks - 1
+        ! Round-robin or block distribution: skip coordinator (rank 0)
+        target_rank = mod(task_id, num_procs - 1) + 1  ! Ranks 1..(num_procs-1)
+        call MPI_Send(task_id, 1, MPI_INTEGER, target_rank, tag_work, MPI_COMM_WORLD)
+        tasks_assigned = tasks_assigned + 1
+    end do
+
+    ! Notify all workers that no more work is coming
+    do i = 1, num_procs - 1
+        call MPI_Send(-1, 1, MPI_INTEGER, i, tag_done, MPI_COMM_WORLD)
+    end do
+
+    print *, "Coordinator: all tasks assigned statically."
+end subroutine static_coordinator
+
+
+    subroutine static_dynamic_coordinator(num_procs)
         integer, intent(in) :: num_procs
         integer :: task_id, i, j, tasks_assigned, workers_done
         integer :: source_rank
@@ -84,7 +111,7 @@ contains
         end do
 
         print *, "Coordinator: all tasks completed and workers done."
-    end subroutine coordinator
+    end subroutine static_dynamic_coordinator
 
     subroutine worker(rank)
         integer, intent(in) :: rank
@@ -120,15 +147,12 @@ contains
         A = 1.0_dp
         B = 1.0_dp
         C = 0.0_dp
-        call timer%stop()
-        elapsed_time = timer%get_elapsed_time()
         !print *, "Time to allocate and initialize matrices was: ", elapsed_time, "seconds"
 
-        call timer%start()
         call pic_gemm(A,B,C)
         call timer%stop()
         elapsed_time = timer%get_elapsed_time()
-        !print *, "Time to perform DGEMM for task", task_id, "was: ", elapsed_time, "seconds"
+        print *, "Time to perform DGEMM for task", task_id, "was: ", elapsed_time, "seconds"
 
 
         deallocate(A, B, C)
