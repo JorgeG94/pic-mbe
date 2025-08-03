@@ -3,11 +3,17 @@ program mpi_dgemm_task_distributor
     use iso_fortran_env, only: dp => real64, int64
     use pic_timer
     use pic_blas_interfaces
+    use pic_flop_rate
     implicit none
 
     ! Parameters
-    type(pic_timer_type) :: my_timer, rank_timer
-    integer, parameter :: total_tasks = 32
+    type(pic_timer_type) :: rank_timer, coord_timer
+    type(flop_rate_type) :: my_flop_rate
+    ! size of maitrx
+    integer, parameter :: m = 4096
+    integer(int64) :: flops
+    real(dp) :: elapsed_time
+    integer, parameter :: total_tasks = 1024
     integer, parameter :: num_initial = 4
     integer, parameter :: tag_request = 1, tag_work = 2, tag_done = 3
 
@@ -25,22 +31,30 @@ program mpi_dgemm_task_distributor
     end if
 
     if(rank == 0) then 
-    call my_timer%start()
+    call my_flop_rate%start_time()
     endif
     
     if (rank == 0) then
+        
+        call coord_timer%start()
         call static_coordinator(num_procs)
+        call coord_timer%stop()
+        print *, "Coordinator finished in", coord_timer%get_elapsed_time(), "seconds"
     else
         call rank_timer%start()
-        call worker(rank)
+        call static_worker(rank, num_procs)
         call rank_timer%stop()
         print *, "Rank", rank, "finished in", rank_timer%get_elapsed_time(), "seconds"
     end if
 
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
     if(rank == 0) then 
-    call my_timer%stop()
-    call my_timer%print_time()
+    flops = total_tasks * 2 * m * m * m  
+    call my_flop_rate%add_flops(flops)
+    call my_flop_rate%stop_time()
+    elapsed_time = my_flop_rate%get_time()
+    print *, "Elapsed time ", elapsed_time
+    call my_flop_rate%report()
     endif
 
     call MPI_Finalize(ierr)
@@ -49,25 +63,29 @@ contains
 
 subroutine static_coordinator(num_procs)
     integer, intent(in) :: num_procs
-    integer :: task_id, i, tasks_assigned, target_rank
-    type(MPI_Status) :: status
+    integer :: task_id, i, start_task, end_task
+    integer :: tasks_per_worker, extra_tasks
+    integer :: rank
 
-    tasks_assigned = 0
+    tasks_per_worker = total_tasks / (num_procs - 1)
+    extra_tasks = mod(total_tasks, num_procs - 1)
+    task_id = 0
 
-    ! Distribute all tasks statically
-    do task_id = 0, total_tasks - 1
-        ! Round-robin or block distribution: skip coordinator (rank 0)
-        target_rank = mod(task_id, num_procs - 1) + 1  ! Ranks 1..(num_procs-1)
-        call MPI_Send(task_id, 1, MPI_INTEGER, target_rank, tag_work, MPI_COMM_WORLD)
-        tasks_assigned = tasks_assigned + 1
+    do rank = 1, num_procs - 1
+        ! Compute range of tasks for this rank
+        start_task = task_id
+        end_task = start_task + tasks_per_worker - 1
+        if (rank <= extra_tasks) end_task = end_task + 1
+
+        ! Send tasks [start_task .. end_task] to this rank
+        do i = start_task, end_task
+            call MPI_Send(i, 1, MPI_INTEGER, rank, tag_work, MPI_COMM_WORLD)
+        end do
+
+        task_id = end_task + 1
     end do
 
-    ! Notify all workers that no more work is coming
-    do i = 1, num_procs - 1
-        call MPI_Send(-1, 1, MPI_INTEGER, i, tag_done, MPI_COMM_WORLD)
-    end do
-
-    print *, "Coordinator: all tasks assigned statically."
+    print *, "Coordinator: all tasks statically assigned."
 end subroutine static_coordinator
 
 
@@ -113,6 +131,22 @@ end subroutine static_coordinator
         print *, "Coordinator: all tasks completed and workers done."
     end subroutine static_dynamic_coordinator
 
+subroutine static_worker(rank, num_procs)
+    integer, intent(in) :: rank, num_procs
+    integer :: task_id, num_tasks, i
+        type(MPI_Status) :: status
+
+    ! Compute my share of tasks
+    num_tasks = total_tasks / (num_procs - 1)
+    if (rank <= mod(total_tasks, num_procs - 1)) num_tasks = num_tasks + 1
+
+    do i = 1, num_tasks
+        call MPI_Recv(task_id, 1, MPI_INTEGER, 0, tag_work, MPI_COMM_WORLD, status)
+        call dummy_work(task_id)
+    end do
+end subroutine static_worker
+
+
     subroutine worker(rank)
         integer, intent(in) :: rank
         integer :: task_id, ierr
@@ -136,13 +170,11 @@ end subroutine static_coordinator
     subroutine dummy_work(task_id)
         integer, intent(in) :: task_id
         integer(int64) :: i, j, k
-        integer :: m
         real(dp), allocatable :: A(:,:), B(:,:), C(:,:)
         type(pic_timer_type) :: timer
         real(dp) :: elapsed_time
 
-        m = 4096
-        call timer%start()
+        !call timer%start()
         allocate(A(m, m), B(m, m), C(m, m))
         A = 1.0_dp
         B = 1.0_dp
@@ -150,9 +182,9 @@ end subroutine static_coordinator
         !print *, "Time to allocate and initialize matrices was: ", elapsed_time, "seconds"
 
         call pic_gemm(A,B,C)
-        call timer%stop()
-        elapsed_time = timer%get_elapsed_time()
-        print *, "Time to perform DGEMM for task", task_id, "was: ", elapsed_time, "seconds"
+        !call timer%stop()
+        !elapsed_time = timer%get_elapsed_time()
+        !print *, "Time to perform DGEMM for task", task_id, "was: ", elapsed_time, "seconds"
 
 
         deallocate(A, B, C)
