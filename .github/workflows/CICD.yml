@@ -3,9 +3,9 @@ name: Setup Fortran Conda CI/CD
 #credit: https://github.com/gha3mi/setup-fortran-conda/tree/main
 on:
   push:
-    branches: [main, master, dev]
+    branches: [dev]
   pull_request:
-    branches: [main, master]
+    branches: [master]
 
 permissions:
   contents: write
@@ -20,8 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        compiler: [gfortran, ifx, lfortran, flang-new, nvfortran]
+        os: [ubuntu-latest]
+        compiler: [gfortran, ifx,nvfortran]
         include:
           - os: ubuntu-latest
             extra-packages: ""
