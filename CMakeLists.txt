@@ -35,6 +35,7 @@ find_package("pic" REQUIRED)
 endif()
 
 add_library(${main_lib} STATIC)
+find_package(MPI COMPONENTS Fortran REQUIRED)
 
 target_link_libraries(${main_lib} PRIVATE pic::pic)
 
@@ -50,9 +51,10 @@ endif()
 set_target_properties(${main_lib} PROPERTIES Fortran_MODULE_DIRECTORY
                                              ${CMAKE_BINARY_DIR}/modules)
 
-add_executable(${exe_name} ${PROJECT_SOURCE_DIR}/app/main.f90)
+add_executable(${exe_name} ${PROJECT_SOURCE_DIR}/app/coord_dgemm.f90)
+#add_executable(${exe_name} ${PROJECT_SOURCE_DIR}/app/multi_node_dgemm.f90)
 target_include_directories(${exe_name} PRIVATE "${CMAKE_BINARY_DIR}/modules")
-target_link_libraries(${exe_name} PRIVATE ${main_lib})
+target_link_libraries(${exe_name} PRIVATE ${main_lib} MPI::MPI_Fortran)
 
 foreach(tgt ${all_targets})
   message(STATUS "${tgt}")

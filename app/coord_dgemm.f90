@@ -2,12 +2,13 @@ program mpi_dgemm_task_distributor
     use mpi_f08
     use iso_fortran_env, only: dp => real64, int64
     use pic_timer
+    use pic_blas_interfaces
     implicit none
 
     ! Parameters
     type(pic_timer_type) :: my_timer
-    integer, parameter :: total_tasks = 1024
-    integer, parameter :: num_initial = 7
+    integer, parameter :: total_tasks = 32
+    integer, parameter :: num_initial = 4
     integer, parameter :: tag_request = 1, tag_work = 2, tag_done = 3
 
     ! MPI variables
@@ -33,6 +34,7 @@ program mpi_dgemm_task_distributor
         call worker(rank)
     end if
 
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
     if(rank == 0) then 
     call my_timer%stop()
     call my_timer%print_time()
@@ -109,24 +111,25 @@ contains
         integer(int64) :: i, j, k
         integer :: m
         real(dp), allocatable :: A(:,:), B(:,:), C(:,:)
+        type(pic_timer_type) :: timer
+        real(dp) :: elapsed_time
 
-        m = 256
+        m = 4096
+        call timer%start()
         allocate(A(m, m), B(m, m), C(m, m))
         A = 1.0_dp
         B = 1.0_dp
         C = 0.0_dp
+        call timer%stop()
+        elapsed_time = timer%get_elapsed_time()
+        !print *, "Time to allocate and initialize matrices was: ", elapsed_time, "seconds"
 
-        do i = 1, m
-            do j = 1, m
-                do k = 1, m
-                    C(i, j) = C(i, j) + A(i, k) * B(k, j)
-                end do
-            end do
-        end do
+        call timer%start()
+        call pic_gemm(A,B,C)
+        call timer%stop()
+        elapsed_time = timer%get_elapsed_time()
+        !print *, "Time to perform DGEMM for task", task_id, "was: ", elapsed_time, "seconds"
 
-        !if (mod(task_id, 256) == 0) then
-        !    print *, "Task", task_id, "C(1,1)=", C(1,1)
-        !end if
 
         deallocate(A, B, C)
     end subroutine dummy_work
