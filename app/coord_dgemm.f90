@@ -6,11 +6,19 @@ program mpi_dgemm_task_distributor
     use pic_flop_rate
     implicit none
 
+    abstract interface
+        subroutine work(task_id)
+            integer, intent(in) :: task_id
+        end subroutine work
+    end interface
+
+
     ! Parameters
+    procedure(work), pointer :: pwork => null()
     type(pic_timer_type) :: rank_timer, coord_timer
     type(flop_rate_type) :: my_flop_rate
     ! size of maitrx
-    integer, parameter :: m = 4096
+    integer, parameter :: m = 5000
     integer(int64) :: flops
     real(dp) :: elapsed_time
     integer, parameter :: total_tasks = 1024
@@ -23,6 +31,9 @@ program mpi_dgemm_task_distributor
     call MPI_Init(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
     call MPI_Comm_size(MPI_COMM_WORLD, num_procs, ierr)
+
+
+    pwork => dummy_work
 
     if (num_procs < 2) then
         if (rank == 0) print *, "Need at least 2 MPI processes."
@@ -42,7 +53,7 @@ program mpi_dgemm_task_distributor
         print *, "Coordinator finished in", coord_timer%get_elapsed_time(), "seconds"
     else
         call rank_timer%start()
-        call static_worker(rank, num_procs)
+        call static_worker(rank, num_procs, pwork)
         call rank_timer%stop()
         print *, "Rank", rank, "finished in", rank_timer%get_elapsed_time(), "seconds"
     end if
@@ -131,9 +142,10 @@ end subroutine static_coordinator
         print *, "Coordinator: all tasks completed and workers done."
     end subroutine static_dynamic_coordinator
 
-subroutine static_worker(rank, num_procs)
+subroutine static_worker(rank, num_procs, work)
     integer, intent(in) :: rank, num_procs
     integer :: task_id, num_tasks, i
+    procedure(dummy_work) :: work_routine
         type(MPI_Status) :: status
 
     ! Compute my share of tasks
@@ -142,7 +154,8 @@ subroutine static_worker(rank, num_procs)
 
     do i = 1, num_tasks
         call MPI_Recv(task_id, 1, MPI_INTEGER, 0, tag_work, MPI_COMM_WORLD, status)
-        call dummy_work(task_id)
+        !call dummy_work(task_id)
+        call work(task_id)
     end do
 end subroutine static_worker
 

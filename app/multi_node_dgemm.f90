@@ -5,7 +5,7 @@ program hierarchical_mpi
     use pic_types, only: dp
     implicit none
 
-    integer, parameter :: total_tasks = 128
+    integer, parameter :: total_tasks = 1024
     integer :: rank, size, ierr
     integer :: node_rank, node_size
     type(MPI_Comm) :: comm_node
