@@ -18,10 +18,10 @@ program mpi_dgemm_task_distributor
     type(pic_timer_type) :: rank_timer, coord_timer
     type(flop_rate_type) :: my_flop_rate
     ! size of maitrx
-    integer, parameter :: m = 5000
+    integer, parameter :: m = 4096
     integer(int64) :: flops
     real(dp) :: elapsed_time
-    integer, parameter :: total_tasks = 1024
+    integer, parameter :: total_tasks = 4096
     integer, parameter :: num_initial = 4
     integer, parameter :: tag_request = 1, tag_work = 2, tag_done = 3
 

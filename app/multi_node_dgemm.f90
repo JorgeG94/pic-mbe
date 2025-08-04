@@ -5,7 +5,9 @@ program hierarchical_mpi
     use pic_types, only: dp
     implicit none
 
-    integer, parameter :: total_tasks = 1024
+    integer, parameter :: total_tasks = 4096
+    integer, parameter :: m = 4096
+    real(dp) :: flops
     integer :: rank, size, ierr
     integer :: node_rank, node_size
     type(MPI_Comm) :: comm_node
@@ -28,23 +30,24 @@ program hierarchical_mpi
         call timer%start()
     end if
 
-if (rank == 0) then
-    if (node_rank == 0) then
-        ! Rank 0 is global and node coordinator (first rank on this node)
-        call global_and_node_coordinator(rank, comm_node, total_tasks)
-    else
-        call program_coordinator(rank, total_tasks)
-    end if
+if (rank == 0 .and. node_rank == 0) then
+    ! Rank 0 on node 0
+    call global_and_node_coordinator(rank, comm_node, total_tasks)
 else if (node_rank == 0) then
+    ! Node coordinator on other nodes
     call node_coordinator(rank, comm_node)
 else
+    ! Worker
     call node_worker(rank, comm_node)
 end if
+
 
     if(rank == 0) then
         call timer%stop()
         elapsed_time = timer%get_elapsed_time()
+        flops = total_tasks * 2 * m *m * m 
         print *, "Total elapsed time for all tasks:", elapsed_time, "seconds"
+        print *, "Flop rate is ", real(flops,dp) / elapsed_time / 1e9_dp
     end if
 
     call MPI_Finalize(ierr)
@@ -54,10 +57,8 @@ end if
         subroutine dummy_work(task_id)
         integer, intent(in) :: task_id
         integer :: i, j, k
-        integer :: m
         real(dp), allocatable :: A(:,:), B(:,:), C(:,:)
 
-        m = 4096
         allocate(A(m, m), B(m, m), C(m, m))
         A = 1.0_dp
         B = 1.0_dp
