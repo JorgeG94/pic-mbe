@@ -31,11 +31,14 @@ if(NOT TARGET test-drive::test-drive AND ENABLE_TESTING)
 endif()
 
 if(NOT TARGET pic::pic)
-find_package("pic" REQUIRED)
+  find_package("pic" REQUIRED)
 endif()
 
 add_library(${main_lib} STATIC)
-find_package(MPI COMPONENTS Fortran REQUIRED)
+find_package(
+  MPI
+  COMPONENTS Fortran
+  REQUIRED)
 
 target_link_libraries(${main_lib} PRIVATE pic::pic)
 
