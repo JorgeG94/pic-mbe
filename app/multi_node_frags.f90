@@ -107,14 +107,57 @@ program hierarchical_mpi_mbe
       call timer%stop()
       elapsed_time = timer%get_elapsed_time()
       ! Estimate flops based on matrix operations per fragment
-      flops = real(fragment_count, dp) * 2.0_dp * (n**3)  ! Rough estimate
+      !flops = real(fragment_count, dp) * 2.0_dp * (n**3)  ! Rough estimate
+      flops = 0.0_dp
+      call calculate_exact_flops(polymers, fragment_count, max_level, n, flops) 
       print *, "Total elapsed time for all fragments:", elapsed_time, "seconds"
+      print *, "Total slops ", flops
       print *, "Estimated flop rate: ", flops / elapsed_time / 1.0e9_dp, " GFLOP/s"
    end if
 
    call MPI_Finalize(ierr)
 
 contains
+   subroutine calculate_exact_flops(polymers, fragment_count, max_level, matrix_size, total_flops)
+      integer, intent(in) :: polymers(:,:), fragment_count, max_level, matrix_size
+      real(dp), intent(out) :: total_flops
+      integer :: i, fragment_size, n_monomers, n_dimers, n_trimers
+      real(dp) :: monomer_flops, dimer_flops, trimer_flops
+      real(dp) :: monomer_size, dimer_size, trimer_size 
+      
+      n_monomers = 0
+      n_dimers = 0
+      n_trimers = 0
+     
+      monomer_size = real(matrix_size,dp) 
+      dimer_size = real(2 * matrix_size,dp) 
+      trimer_size = real(3 * matrix_size,dp)
+      ! Count fragments by size
+      do i = 1, fragment_count
+         fragment_size = count(polymers(i, :) > 0)
+         select case (fragment_size)
+         case (1)
+            n_monomers = n_monomers + 1
+         case (2)
+            n_dimers = n_dimers + 1
+         case (3)
+            n_trimers = n_trimers + 1
+         end select
+      end do
+      
+      ! Calculate flops for each fragment type (assuming GEMM: 2*n^3 flops)
+      monomer_flops = real(n_monomers, dp) * 2.0_dp * real(matrix_size*matrix_size*matrix_size,dp)
+      dimer_flops = real(n_dimers, dp) * 2.0_dp * real(dimer_size * dimer_size * dimer_size,dp)
+      trimer_flops = real(n_trimers, dp) * 2.0_dp * real(trimer_size * trimer_size * trimer_size, dp)
+      
+      total_flops = monomer_flops + dimer_flops + trimer_flops
+      
+      print *, "Fragment breakdown:"
+      print *, "  Monomers: ", n_monomers, " (", monomer_flops/1.0e9_dp, " GFLOP)"
+      print *, "  Dimers:   ", n_dimers, " (", dimer_flops/1.0e9_dp, " GFLOP)"
+      print *, "  Trimers:  ", n_trimers, " (", trimer_flops/1.0e9_dp, " GFLOP)"
+      print *, "  Total:    ", fragment_count, " (", total_flops/1.0e9_dp, " GFLOP)"
+   end subroutine calculate_exact_flops
 
    ! Fragment work routine
    subroutine process_fragment(fragment_idx, fragment_indices, fragment_size, matrix_size)
@@ -132,17 +175,17 @@ contains
       C = 0.0_dp
       
       ! Print fragment information
-      write(*,'(A,I0,A,I0,A)', advance='no') "Worker got fragment ", fragment_idx, &
-           " of size ", fragment_size, " with indices "
-      do i = 1, fragment_size
-         write(*,'(I0,X)', advance='no') fragment_indices(i)
-      end do
-      write(*,*) ""
+      !write(*,'(A,I0,A,I0,A)', advance='no') "Worker got fragment ", fragment_idx, &
+      !     " of size ", fragment_size, " with indices "
+      !do i = 1, fragment_size
+      !   write(*,'(I0,X)', advance='no') fragment_indices(i)
+      !end do
+      !write(*,*) ""
 
       call pic_gemm(A,B,C)
       
       ! Simulate some work (could replace with actual computation)
-      call cpu_time(A(1,1))  ! Just to use the matrix
+      !call cpu_time(A(1,1))  ! Just to use the matrix
 
       deallocate(A, B, C)
    end subroutine process_fragment

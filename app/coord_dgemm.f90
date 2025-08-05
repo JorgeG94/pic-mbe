@@ -18,10 +18,10 @@ program mpi_dgemm_task_distributor
    type(pic_timer_type) :: rank_timer, coord_timer
    type(flop_rate_type) :: my_flop_rate
    ! size of maitrx
-   integer, parameter :: m = 4096
+   integer, parameter :: m = 3072
    integer(int64) :: flops
    real(dp) :: elapsed_time
-   integer, parameter :: total_tasks = 4096
+   integer :: total_tasks
    integer, parameter :: num_initial = 4
    integer, parameter :: tag_request = 1, tag_work = 2, tag_done = 3
 
@@ -33,6 +33,7 @@ program mpi_dgemm_task_distributor
    call MPI_Comm_size(MPI_COMM_WORLD, num_procs, ierr)
 
    pwork => dummy_work
+   total_tasks = 455
 
    if (num_procs < 2) then
       if (rank == 0) print *, "Need at least 2 MPI processes."
@@ -59,7 +60,8 @@ program mpi_dgemm_task_distributor
 
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
    if (rank == 0) then
-      flops = total_tasks*2*m*m*m
+      flops = real(total_tasks,dp)*2*m*m*m
+      print *, "FLops is ", flops
       call my_flop_rate%add_flops(flops)
       call my_flop_rate%stop_time()
       elapsed_time = my_flop_rate%get_time()
@@ -140,10 +142,10 @@ contains
       print *, "Coordinator: all tasks completed and workers done."
    end subroutine static_dynamic_coordinator
 
-   subroutine static_worker(rank, num_procs, work)
+   subroutine static_worker(rank, num_procs, work_routine)
       integer, intent(in) :: rank, num_procs
       integer :: task_id, num_tasks, i
-      procedure(dummy_work) :: work_routine
+      procedure(work) :: work_routine
       type(MPI_Status) :: status
 
       ! Compute my share of tasks
@@ -153,7 +155,7 @@ contains
       do i = 1, num_tasks
          call MPI_Recv(task_id, 1, MPI_INTEGER, 0, tag_work, MPI_COMM_WORLD, status)
          !call dummy_work(task_id)
-         call work(task_id)
+         call work_routine(task_id)
       end do
    end subroutine static_worker
 
