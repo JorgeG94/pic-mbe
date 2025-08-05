@@ -3,6 +3,9 @@ module pic_fragment
    use pic_string_utils, only: to_string
    use pic_matrix_printer_v2, only: print_array_v2
    implicit none
+   private
+   public :: pic_fragment_block
+   public :: count_nonzeros
 
    type :: pic_fragment_block
       integer(default_int), allocatable :: indices(:)
@@ -29,9 +32,9 @@ contains
    subroutine print_indices(self)
       class(pic_fragment_block), intent(in) :: self
 
-!print *, "Number of monomers " // to_string(size(self%indices,1))
       call print_array_v2(self%indices)
 
    end subroutine print_indices
+
 
 end module pic_fragment

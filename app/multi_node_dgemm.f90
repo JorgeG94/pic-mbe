@@ -1,12 +1,13 @@
 program hierarchical_mpi
    use mpi_f08
-   use pic_blas_interfaces
-   use pic_timer
+   use pic_blas_interfaces, only: pic_gemm
+   use pic_timer, only: pic_timer_type
    use pic_types, only: dp
    implicit none
 
    abstract interface
       subroutine work(task_id)
+         implicit none
          integer, intent(in) :: task_id
       end subroutine work
    end interface
@@ -106,8 +107,6 @@ contains
 
 ! Global coordinator that distributes tasks dynamically to node leaders
    subroutine global_coordinator(rank, comm_node, total_tasks, node_leader_ranks, num_nodes)
-      use mpi_f08
-      implicit none
       integer, intent(in) :: rank, total_tasks
       integer, intent(in) :: node_leader_ranks(:), num_nodes
       type(MPI_Comm), intent(in) :: comm_node
@@ -186,8 +185,6 @@ contains
 
 ! Node coordinator that requests tasks from global coordinator
    subroutine node_coordinator(rank, comm_node)
-      use mpi_f08
-      implicit none
       integer, intent(in) :: rank
       type(MPI_Comm), intent(in) :: comm_node
       integer :: task_id, ierr, dummy_msg
@@ -242,8 +239,6 @@ contains
    end subroutine node_coordinator
 
    subroutine node_worker(rank, comm_node, work_routine)
-      use mpi_f08
-      implicit none
       integer, intent(in) :: rank
       type(MPI_Comm), intent(in) :: comm_node
       integer :: task_id, ierr, dummy_msg

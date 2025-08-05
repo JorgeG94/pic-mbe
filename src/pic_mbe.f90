@@ -1,8 +1,25 @@
 module pic_mbe
    use pic_types, only: default_int, dp
    implicit none
+   private
+   public :: binomial
+   public :: create_monomer_list
+   public :: generate_fragment_list
+   public :: get_nfrags
+
 
 contains
+   
+   pure function get_nfrags(n_monomers, max_level) result(n_expected_fragments)
+      integer(default_int), intent(in) :: n_monomers, max_level
+      integer(default_int) :: n_expected_fragments
+      integer(default_int) :: i
+
+      n_expected_fragments = 0
+      do i = 1, max_level
+         n_expected_fragments = n_expected_fragments + binomial(n_monomers, i)
+      end do
+   end function get_nfrags
 
    pure function binomial(n, r) result(c)
       integer(default_int), intent(in) :: n, r
@@ -33,7 +50,7 @@ contains
 
    end subroutine create_monomer_list
 
-   recursive subroutine generate_combinations(monomers, max_level, polymers, count)
+   recursive subroutine generate_fragment_list(monomers, max_level, polymers, count)
       integer(default_int), intent(in) :: monomers(:), max_level
       integer(default_int), intent(inout) :: polymers(:, :)
       integer(default_int), intent(inout) :: count
@@ -43,7 +60,7 @@ contains
       do r = 2, max_level
          call combine(monomers, n, r, polymers, count)
       end do
-   end subroutine generate_combinations
+   end subroutine generate_fragment_list
 
    recursive subroutine combine(arr, n, r, out_array, count)
       integer(default_int), intent(in) :: arr(:)
@@ -84,7 +101,7 @@ contains
                write (*, '(A)', advance='no') ":"
             end if
          end do
-         write (*, *) ! newline
+         write (*, *)  ! newline
       end do
    end subroutine print_combos
 

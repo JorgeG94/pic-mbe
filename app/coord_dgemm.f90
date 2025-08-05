@@ -1,13 +1,14 @@
 program mpi_dgemm_task_distributor
    use mpi_f08
    use iso_fortran_env, only: dp => real64, int64
-   use pic_timer
-   use pic_blas_interfaces
-   use pic_flop_rate
+   use pic_timer, only: pic_timer_type
+   use pic_blas_interfaces, only: pic_gemm
+   use pic_flop_rate, only: flop_rate_type
    implicit none
 
    abstract interface
       subroutine work(task_id)
+         implicit none 
          integer, intent(in) :: task_id
       end subroutine work
    end interface
