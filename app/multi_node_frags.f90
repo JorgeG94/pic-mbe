@@ -11,7 +11,7 @@ program hierarchical_mpi_mbe
    ! Fragment generation parameters
    integer(default_int), parameter :: n_monomers = 15
    integer(default_int), parameter :: max_level = 3
-   integer(default_int), parameter :: n = 1024  ! monomer matrix size
+   integer(default_int), parameter :: n = 128  ! monomer matrix size
    
    ! MPI and timing variables
    integer :: rank, size, ierr
@@ -170,23 +170,13 @@ contains
       allocate(A(fragment_size * matrix_size, fragment_size * matrix_size))
       allocate(B(fragment_size * matrix_size, fragment_size * matrix_size))
       allocate(C(fragment_size * matrix_size, fragment_size * matrix_size))
+
       A = real(fragment_size * fragment_idx, dp)
       B = real(fragment_size * fragment_idx, dp)
       C = 0.0_dp
       
-      ! Print fragment information
-      !write(*,'(A,I0,A,I0,A)', advance='no') "Worker got fragment ", fragment_idx, &
-      !     " of size ", fragment_size, " with indices "
-      !do i = 1, fragment_size
-      !   write(*,'(I0,X)', advance='no') fragment_indices(i)
-      !end do
-      !write(*,*) ""
-
       call pic_gemm(A,B,C)
       
-      ! Simulate some work (could replace with actual computation)
-      !call cpu_time(A(1,1))  ! Just to use the matrix
-
       deallocate(A, B, C)
    end subroutine process_fragment
 

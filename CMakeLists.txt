@@ -53,14 +53,17 @@ endif()
 
 set_target_properties(${main_lib} PROPERTIES Fortran_MODULE_DIRECTORY
                                              ${CMAKE_BINARY_DIR}/modules)
+target_link_libraries(${main_lib} PRIVATE MPI::MPI_Fortran)
 
-add_executable(main ${PROJECT_SOURCE_DIR}/app/main.f90)
-add_executable(static_load ${PROJECT_SOURCE_DIR}/app/coord_dgemm.f90)
-add_executable(${exe_name} ${PROJECT_SOURCE_DIR}/app/multi_node_frags.f90)
-target_include_directories(main PRIVATE "${CMAKE_BINARY_DIR}/modules")
-target_link_libraries(main PRIVATE ${main_lib} MPI::MPI_Fortran)
-target_include_directories(static_load PRIVATE "${CMAKE_BINARY_DIR}/modules")
-target_link_libraries(static_load PRIVATE ${main_lib} MPI::MPI_Fortran)
+#add_executable(main ${PROJECT_SOURCE_DIR}/app/main.f90)
+#add_executable(static_load ${PROJECT_SOURCE_DIR}/app/coord_dgemm.f90)
+add_executable(${exe_name} ${PROJECT_SOURCE_DIR}/app/new_mpi_frag.f90)
+
+#target_include_directories(main PRIVATE "${CMAKE_BINARY_DIR}/modules")
+#target_link_libraries(main PRIVATE ${main_lib} MPI::MPI_Fortran)
+#target_include_directories(static_load PRIVATE "${CMAKE_BINARY_DIR}/modules")
+#target_link_libraries(static_load PRIVATE ${main_lib} MPI::MPI_Fortran)
+
 target_include_directories(${exe_name} PRIVATE "${CMAKE_BINARY_DIR}/modules")
 target_link_libraries(${exe_name} PRIVATE ${main_lib} MPI::MPI_Fortran)
 
