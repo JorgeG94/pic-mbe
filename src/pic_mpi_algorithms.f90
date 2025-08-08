@@ -214,7 +214,7 @@ subroutine node_coordinator(world_comm, node_comm, max_level)
             if (global_status%MPI_TAG == 301) then
                call recv_with_status(world_comm, fragment_size, 0, 301, global_status)
                allocate(fragment_indices(fragment_size))
-               call recv_array_with_status(world_comm, fragment_indices, 0, 301, global_status)
+               call recv_with_status(world_comm, fragment_indices, 0, 301, global_status)
 
                call send(node_comm, fragment_idx, status%MPI_SOURCE, 201)
                call send(node_comm, fragment_size, status%MPI_SOURCE, 201)
@@ -256,7 +256,7 @@ subroutine node_worker(world_comm, node_comm, matrix_size, max_level)
       case (201)
          call recv_with_status(node_comm, fragment_size, 0, 201, status)
          allocate(fragment_indices(fragment_size))
-         call recv_array_with_status(node_comm, fragment_indices, 0, 201, status)
+         call recv_with_status(node_comm, fragment_indices, 0, 201, status)
 
          call process_fragment(fragment_idx, fragment_indices, fragment_size, matrix_size)
 

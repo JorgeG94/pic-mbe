@@ -6,7 +6,7 @@ module mpi_comm_simple
     
     public :: comm_t, comm_world, comm_null
     public :: send, recv
-    public :: recv_with_status, iprobe, recv_array_with_status
+    public :: recv_with_status, iprobe
     
     type :: comm_t
         private
@@ -54,11 +54,9 @@ module mpi_comm_simple
 
     interface recv_with_status
         module procedure :: comm_recv_integer_with_status
+       module procedure :: comm_recv_integer_array_with_status
     end interface recv_with_status
 
-    interface recv_array_with_status
-       module procedure :: comm_recv_integer_array_with_status
-    end interface
     
     interface iprobe
         module procedure :: comm_iprobe
