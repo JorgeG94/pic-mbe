@@ -6,7 +6,8 @@ module mpi_comm_simple
     
     public :: comm_t, comm_world, comm_null
     public :: send, recv
-    public :: recv_with_status, iprobe
+    !public :: recv_with_status, iprobe
+    public ::  iprobe
     
     type :: comm_t
         private
@@ -50,12 +51,12 @@ module mpi_comm_simple
     interface recv
         module procedure :: comm_recv_integer
         module procedure :: comm_recv_integer_array
+       !module procedure :: comm_recv_integer_with_status
+       !module procedure :: comm_recv_integer_array_with_status
     end interface recv
 
-    interface recv_with_status
-        module procedure :: comm_recv_integer_with_status
-       module procedure :: comm_recv_integer_array_with_status
-    end interface recv_with_status
+    !interface recv_with_status
+    !end interface recv_with_status
 
     
     interface iprobe
@@ -260,48 +261,48 @@ contains
     !     call MPI_Send(data, size(data), MPI_INTEGER, dest, tag, comm%m_comm, status, ierr)
     ! end subroutine comm_send_integer_array_with_status
     
-    subroutine comm_recv_integer(comm, data, source, tag)
+    subroutine comm_recv_integer(comm, data, source, tag, status)
         type(comm_t), intent(in) :: comm
         integer(int32), intent(out) :: data
         integer(int32), intent(in) :: source
         integer(int32), intent(in) :: tag
         integer(int32) :: ierr
-        !type(MPI_Status), intent(out), optional :: status
+        type(MPI_Status), intent(out), optional :: status
 
-        !if(present(status)) then 
-        !call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
-        !else
+        if(present(status)) then 
+        call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
+        else
         call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, MPI_STATUS_IGNORE, ierr)
-        !endif
+        endif
     end subroutine comm_recv_integer
 
-    subroutine comm_recv_integer_with_status(comm, data, source, tag, status)
-        type(comm_t), intent(in) :: comm
-        integer(int32), intent(out) :: data
-        integer(int32), intent(in) :: source
-        integer(int32), intent(in) :: tag
-        type(MPI_Status), intent(out) :: status
-        integer(int32) :: ierr
-        
-        call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
-    end subroutine comm_recv_integer_with_status
+    !subroutine comm_recv_integer_with_status(comm, data, source, tag, status)
+    !    type(comm_t), intent(in) :: comm
+    !    integer(int32), intent(out) :: data
+    !    integer(int32), intent(in) :: source
+    !    integer(int32), intent(in) :: tag
+    !    type(MPI_Status), intent(out) :: status
+    !    integer(int32) :: ierr
+    !    
+    !    call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
+    !end subroutine comm_recv_integer_with_status
 
-    subroutine comm_recv_integer_array_with_status(comm, data, source, tag, status)
-        type(comm_t), intent(in) :: comm
-        integer(int32), allocatable, intent(out) :: data(:)
-        integer(int32), intent(in) :: source
-        integer(int32), intent(in) :: tag
-        type(MPI_Status), intent(out) :: status
-        integer(int32) :: count, ierr
-        
-        ! First probe to get message size
-        call MPI_Probe(source, tag, comm%m_comm, status, ierr)
-        call MPI_Get_count(status, MPI_INTEGER, count, ierr)
-        
-        ! Allocate and receive
-        allocate(data(count))
-        call MPI_Recv(data, count, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
-    end subroutine comm_recv_integer_array_with_status
+    !subroutine comm_recv_integer_array_with_status(comm, data, source, tag, status)
+    !    type(comm_t), intent(in) :: comm
+    !    integer(int32), allocatable, intent(out) :: data(:)
+    !    integer(int32), intent(in) :: source
+    !    integer(int32), intent(in) :: tag
+    !    type(MPI_Status), intent(out) :: status
+    !    integer(int32) :: count, ierr
+    !    
+    !    ! First probe to get message size
+    !    call MPI_Probe(source, tag, comm%m_comm, status, ierr)
+    !    call MPI_Get_count(status, MPI_INTEGER, count, ierr)
+    !    
+    !    ! Allocate and receive
+    !    allocate(data(count))
+    !    call MPI_Recv(data, count, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
+    !end subroutine comm_recv_integer_array_with_status
     
     subroutine comm_recv_integer_array(comm, data, source, tag, status)
         type(comm_t), intent(in) :: comm
