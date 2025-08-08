@@ -142,7 +142,7 @@ subroutine global_coordinator(world_comm, node_comm, total_fragments, polymers, 
          end if
       end if
 
-      call sleep(0)
+      !call sleep(0)
    end do
 
    print *, "Global coordinator finished all fragments"
@@ -232,7 +232,7 @@ subroutine node_coordinator(world_comm, node_comm, max_level)
          end if
       end if
 
-      call sleep(0)
+      !call sleep(0)
    end do
 end subroutine node_coordinator
 
