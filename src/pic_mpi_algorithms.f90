@@ -3,6 +3,7 @@ module pic_mpi_algorithms
   use mpi_comm_simple
   use pic_types
    use pic_blas_interfaces, only: pic_gemm
+   use pic_timer
   implicit none 
 
   contains 
@@ -12,17 +13,25 @@ module pic_mpi_algorithms
       integer, intent(in) :: fragment_indices(fragment_size)
       real(dp), allocatable :: A(:,:), B(:,:), C(:,:)
       integer :: i
+      type(pic_timer_type) :: gemm_timer
+      real(dp) :: elapsed_time
       
       ! Allocate and initialize fragment matrix
       allocate(A(fragment_size * matrix_size, fragment_size * matrix_size))
       allocate(B(fragment_size * matrix_size, fragment_size * matrix_size))
       allocate(C(fragment_size * matrix_size, fragment_size * matrix_size))
 
+
       A = real(fragment_size * fragment_idx, dp)
       B = real(fragment_size * fragment_idx, dp)
       C = 0.0_dp
       
+      call gemm_timer%start()
       call pic_gemm(A,B,C)
+      call gemm_timer%stop()
+      elapsed_time = gemm_timer%get_elapsed_time()
+
+      print *, "Gemm for fragment", fragment_indices, " was ", elapsed_time, " seconds"
       
       deallocate(A, B, C)
    end subroutine process_fragment
@@ -128,6 +137,7 @@ subroutine global_coordinator(world_comm, node_comm, total_fragments, polymers, 
             finished_nodes = finished_nodes + 1
             print *, "Manually incremented finished_nodes for self"
          else
+            finished_nodes = finished_nodes + 1
             print *, "Global coordinator finished local workers"
          end if
       end if
@@ -151,7 +161,7 @@ subroutine send_fragment_to_node(world_comm, fragment_idx, polymers, max_level, 
 
    call send(world_comm, fragment_idx, dest_rank, 301)
    call send(world_comm, fragment_size, dest_rank, 301)
-   call send_array(world_comm, fragment_indices, dest_rank, 301)
+   call send(world_comm, fragment_indices, dest_rank, 301)
 
    deallocate(fragment_indices)
 end subroutine send_fragment_to_node
@@ -170,7 +180,7 @@ subroutine send_fragment_to_worker(node_comm, fragment_idx, polymers, max_level,
 
    call send(node_comm, fragment_idx, dest_rank, 201)
    call send(node_comm, fragment_size, dest_rank, 201)
-   call send_array(node_comm, fragment_indices, dest_rank, 201)
+   call send(node_comm, fragment_indices, dest_rank, 201)
 
    deallocate(fragment_indices)
 end subroutine send_fragment_to_worker
@@ -208,7 +218,7 @@ subroutine node_coordinator(world_comm, node_comm, max_level)
 
                call send(node_comm, fragment_idx, status%MPI_SOURCE, 201)
                call send(node_comm, fragment_size, status%MPI_SOURCE, 201)
-               call send_array(node_comm, fragment_indices, status%MPI_SOURCE, 201)
+               call send(node_comm, fragment_indices, status%MPI_SOURCE, 201)
 
                deallocate(fragment_indices)
             else

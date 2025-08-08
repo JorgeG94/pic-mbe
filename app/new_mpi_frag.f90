@@ -11,9 +11,9 @@ program hierarchical_mpi_mbe
    implicit none
 
    ! Fragment generation parameters
-   integer(default_int), parameter :: n_monomers = 15
+   integer(default_int), parameter :: n_monomers = 10
    integer(default_int), parameter :: max_level = 3
-   integer(default_int), parameter :: n = 512  ! monomer matrix size
+   integer(default_int), parameter :: n = 256  ! monomer matrix size
 
    ! MPI wrappers
    type(comm_t) :: world_comm, node_comm
