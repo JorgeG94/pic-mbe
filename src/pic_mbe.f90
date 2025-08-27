@@ -1,8 +1,10 @@
 module pic_mbe
    use pic_types, only: default_int, dp
+   use pic_fragment, only: pic_fragment_type, new_fragment
    implicit none
    private
    public :: binomial
+   public :: print_combos
    public :: create_monomer_list
    public :: generate_fragment_list
    public :: get_nfrags
@@ -37,6 +39,18 @@ contains
          end do
       end if
    end function binomial
+
+ ! subroutine create_monomer_list(monomers, n_bas)
+ !   type(pic_fragment_type), allocatable, intent(inout) :: monomers(:)
+ !   integer(default_int) :: n_bas
+ !   integer(default_int) :: i, length
+
+ !   length = size(monomers, 1)
+
+ !   do i = 1, length 
+ !     monomers(i) = new_fragment([i],n_bas)
+ !   end do 
+ ! end subroutine create_monomer_list
 
    subroutine create_monomer_list(monomers)
       integer(default_int), allocatable, intent(inout) :: monomers(:)
@@ -88,21 +102,35 @@ contains
          call combine_util(arr, n, r, index + 1, data, j + 1, out_array, count)
       end do
    end subroutine combine_util
-
-   subroutine print_combos(out_array, count, max_len)
-      integer(default_int), intent(in) :: out_array(:, :), count, max_len
-      integer(default_int) :: i, j
-
-      do i = 1, count
-         do j = 1, max_len
+subroutine print_combos(out_array, count, max_len)
+    integer(default_int), intent(in) :: out_array(:, :)
+    integer(default_int), intent(in), optional :: count, max_len
+    integer(default_int) :: i, j
+    integer(default_int) :: actual_count, actual_max_len
+    
+    ! Use provided values or detect bounds from the array
+    if (present(count)) then
+        actual_count = count
+    else
+        actual_count = size(out_array, 1)
+    end if
+    
+    if (present(max_len)) then
+        actual_max_len = max_len
+    else
+        actual_max_len = size(out_array, 2)
+    end if
+    
+    do i = 1, actual_count
+        do j = 1, actual_max_len
             if (out_array(i, j) == 0) exit
             write (*, '(I0)', advance='no') out_array(i, j)
-            if (j < max_len .and. out_array(i, j + 1) /= 0) then
-               write (*, '(A)', advance='no') ":"
+            if (j < actual_max_len .and. out_array(i, j + 1) /= 0) then
+                write (*, '(A)', advance='no') ":"
             end if
-         end do
-         write (*, *)  ! newline
-      end do
-   end subroutine print_combos
+        end do
+        write (*, *)  ! newline
+    end do
+end subroutine print_combos
 
 end module pic_mbe

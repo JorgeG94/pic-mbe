@@ -90,7 +90,7 @@ subroutine global_coordinator(world_comm, node_comm, total_fragments, polymers, 
    integer :: local_finished_workers, fragment_size, local_dummy
    integer, allocatable :: fragment_indices(:)
 
-   current_fragment = 1
+   current_fragment = total_fragments
    finished_nodes = 0
    local_finished_workers = 0
    handling_local_workers = (node_comm%size() > 1)
@@ -105,9 +105,9 @@ subroutine global_coordinator(world_comm, node_comm, total_fragments, polymers, 
          call recv(world_comm, dummy_msg, status%MPI_SOURCE, 300)
          request_source = status%MPI_SOURCE
 
-         if (current_fragment <= total_fragments) then
+         if (current_fragment >= 1) then
             call send_fragment_to_node(world_comm, current_fragment, polymers, max_level, request_source)
-            current_fragment = current_fragment + 1
+            current_fragment = current_fragment - 1
          else
             call send(world_comm, -1, request_source, 302)
             finished_nodes = finished_nodes + 1
@@ -120,9 +120,9 @@ subroutine global_coordinator(world_comm, node_comm, total_fragments, polymers, 
          if (has_pending) then
             call recv(node_comm, local_dummy, local_status%MPI_SOURCE, 200)
 
-            if (current_fragment <= total_fragments) then
+            if (current_fragment >= 1) then
                call send_fragment_to_worker(node_comm, current_fragment, polymers, max_level, local_status%MPI_SOURCE)
-               current_fragment = current_fragment + 1
+               current_fragment = current_fragment - 1
             else
                call send(node_comm, -1, local_status%MPI_SOURCE, 202)
                local_finished_workers = local_finished_workers + 1

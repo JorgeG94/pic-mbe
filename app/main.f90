@@ -6,7 +6,7 @@ program hierarchical_mpi_mbe
    use pic_types, only: dp, default_int
    use pic_string_utils, only: to_string
    use pic_mbe, only: get_nfrags, create_monomer_list, generate_fragment_list
-   use pic_fragment, only: pic_fragment_block, count_nonzeros
+   use pic_fragment, only: pic_fragment_type, count_nonzeros
    use pic_mpi_algorithms
    implicit none
 
@@ -27,7 +27,7 @@ program hierarchical_mpi_mbe
    integer(default_int), allocatable :: monomers(:)
    integer(default_int), allocatable :: polymers(:, :)
    integer(default_int) :: n_expected_fragments, fragment_count
-   type(pic_fragment_block), allocatable :: fragments(:)
+   type(pic_fragment_type), allocatable :: fragments(:)
 
    ! Node leader detection
    integer :: global_node_rank
