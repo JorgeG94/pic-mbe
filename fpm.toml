@@ -10,10 +10,15 @@ suffixes = ["F90", "f90"]
 [library]
 source-dir = "src"
 [build]
-auto-executables = true
+auto-executables = false
 auto-tests = false
 #auto-examples = true
 module-naming = false
+external-modules = ["mpi_f08"]
+[[executable]]
+name = "mbe"
+source-dir = "app"
+main = "mbe.f90"
 [[test]]
 name = "sample"
 source-dir = "test"
@@ -28,7 +33,7 @@ source-form = "free"
 
 [dependencies]
 openmp = "*"
-mpi = "*"
+#mpi = "*"
 test-drive.git = "https://github.com/fortran-lang/test-drive"
 pic = { git = "https://github.com/JorgeG94/pic.git", branch = "main"}
 
