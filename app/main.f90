@@ -11,7 +11,7 @@ program hierarchical_mpi_mbe
    implicit none
 
    ! Fragment generation parameters
-   integer(default_int), parameter :: n_monomers = 10
+   integer(default_int), parameter :: n_monomers = 50
    integer(default_int), parameter :: max_level = 3
    integer(default_int), parameter :: n = 256  ! monomer matrix size
 
@@ -58,7 +58,7 @@ program hierarchical_mpi_mbe
    num_nodes = count(all_node_leader_ranks /= -1)
    allocate(node_leader_ranks(num_nodes))
    i = 0
-   do concurrent(j = 1:world_comm%size())
+   do j = 1,world_comm%size()
       if (all_node_leader_ranks(j) /= -1) then
          i = i + 1
          node_leader_ranks(i) = all_node_leader_ranks(j)

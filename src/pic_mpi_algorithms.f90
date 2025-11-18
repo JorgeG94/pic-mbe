@@ -2,7 +2,7 @@ module pic_mpi_algorithms
   use mpi_f08
   use mpi_comm_simple
   use pic_types
-   use pic_blas_interfaces, only: pic_gemm
+   !use pic_blas_interfaces, only: pic_gemm
    use pic_timer
   implicit none 
 
@@ -12,7 +12,7 @@ module pic_mpi_algorithms
       integer, intent(in) :: fragment_idx, fragment_size, matrix_size
       integer, intent(in) :: fragment_indices(fragment_size)
       real(dp), allocatable :: A(:,:), B(:,:), C(:,:)
-      integer :: i
+      integer :: i,j,k
       type(timer_type) :: gemm_timer
       real(dp) :: elapsed_time
       
@@ -22,12 +22,19 @@ module pic_mpi_algorithms
       allocate(C(fragment_size * matrix_size, fragment_size * matrix_size))
 
 
-      A = real(fragment_size * fragment_idx, dp)
-      B = real(fragment_size * fragment_idx, dp)
-      C = 0.0_dp
-      
+      do concurrent (j=1:matrix_size, i=1:matrix_size)
+        A(i,j) = real(fragment_size * fragment_idx,dp)
+        B(i,j) = real(fragment_size * fragment_idx,dp)
+        C(i,j) = 0.0_dp
+      end do
+      !A = real(fragment_size * fragment_idx, dp)
+      !B = real(fragment_size * fragment_idx, dp)
+      !C = 0.0_dp
       call gemm_timer%start()
-      call pic_gemm(A,B,C)
+      do concurrent (j=1:matrix_size, i=1:matrix_size, k=1:matrix_size)
+        C(i,j) = C(i,j) + A(i,k) * B(k,j)
+      end do
+      !call pic_gemm(A,B,C)
       call gemm_timer%stop()
       elapsed_time = gemm_timer%get_elapsed_time()
 
