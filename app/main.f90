@@ -2,9 +2,9 @@ program hierarchical_mpi_mbe
    use mpi_f08
    use mpi_comm_simple        
    use pic_blas_interfaces, only: pic_gemm
-   use pic_timer, only: pic_timer_type
+   use pic_timer, only: timer_type
    use pic_types, only: dp, default_int
-   use pic_string_utils, only: to_string
+   use pic_io, only: to_char
    use pic_mbe, only: get_nfrags, create_monomer_list, generate_fragment_list
    use pic_fragment, only: pic_fragment_block, count_nonzeros
    use pic_mpi_algorithms
@@ -20,7 +20,7 @@ program hierarchical_mpi_mbe
    integer :: ierr
 
    ! Timing
-   type(pic_timer_type) :: timer
+   type(timer_type) :: timer
    real(dp) :: elapsed_time, flops
 
    ! Fragment data structures

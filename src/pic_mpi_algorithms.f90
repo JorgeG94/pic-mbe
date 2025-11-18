@@ -13,7 +13,7 @@ module pic_mpi_algorithms
       integer, intent(in) :: fragment_indices(fragment_size)
       real(dp), allocatable :: A(:,:), B(:,:), C(:,:)
       integer :: i
-      type(pic_timer_type) :: gemm_timer
+      type(timer_type) :: gemm_timer
       real(dp) :: elapsed_time
       
       ! Allocate and initialize fragment matrix
