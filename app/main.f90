@@ -67,6 +67,10 @@ program hierarchical_mpi_mbe
       call MPI_Abort(world_comm%get(), 1, ierr)
    end if
 
+   if (world_comm%leader()) then
+      call timer%start()
+   end if
+
    !==============================
    ! Determine node leaders
    !==============================
@@ -119,7 +123,6 @@ program hierarchical_mpi_mbe
       end if
 
       print *, "Generated ", fragment_count, " fragments for distribution"
-      call timer%start()
    end if
 
    if (node_comm%leader() .eqv. .false.) then
@@ -152,7 +155,7 @@ program hierarchical_mpi_mbe
       call calculate_exact_flops(polymers, fragment_count, max_level, n, flops)
 
       print *, "Total elapsed time for all fragments:", elapsed_time, "seconds"
-      print *, "Total flops ", flops
+      print *, "Total flops ", flops/1.0e9_dp, " GFLOPs"
       print *, "Estimated flop rate: ", flops/elapsed_time/1.0e9_dp, " GFLOP/s"
    end if
 

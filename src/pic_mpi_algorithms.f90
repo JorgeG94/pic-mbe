@@ -57,42 +57,51 @@ contains
    end subroutine process_fragment
 
    subroutine calculate_exact_flops(polymers, fragment_count, max_level, matrix_size, total_flops)
-      use pic_types, only: dp
-      implicit none
       integer, intent(in) :: polymers(:, :), fragment_count, max_level, matrix_size
       real(dp), intent(out) :: total_flops
-      integer :: i, fragment_size, n_monomers, n_dimers, n_trimers
-      real(dp) :: monomer_flops, dimer_flops, trimer_flops
-      real(dp) :: monomer_size, dimer_size, trimer_size
 
-      n_monomers = 0
-      n_dimers = 0
-      n_trimers = 0
+      integer :: i, fragment_size
+      integer, allocatable :: n_mers(:)
+      real(dp), allocatable :: mer_flops(:)
+      real(dp) :: mer_size
 
-      monomer_size = real(matrix_size, dp)
-      dimer_size = real(2*matrix_size, dp)
-      trimer_size = real(3*matrix_size, dp)
+      ! Allocate counters for each n-mer level (1 to max_level)
+      allocate (n_mers(max_level))
+      allocate (mer_flops(max_level))
 
+      n_mers = 0
+      mer_flops = 0.0_dp
+
+      ! Count fragments by size
       do i = 1, fragment_count
          fragment_size = count(polymers(i, :) > 0)
-         select case (fragment_size)
-         case (1); n_monomers = n_monomers + 1
-         case (2); n_dimers = n_dimers + 1
-         case (3); n_trimers = n_trimers + 1
-         end select
+         if (fragment_size >= 1 .and. fragment_size <= max_level) then
+            n_mers(fragment_size) = n_mers(fragment_size) + 1
+         end if
       end do
 
-      monomer_flops = real(n_monomers, dp)*2.0_dp*monomer_size**3
-      dimer_flops = real(n_dimers, dp)*2.0_dp*dimer_size**3
-      trimer_flops = real(n_trimers, dp)*2.0_dp*trimer_size**3
+      ! Calculate FLOPs for each n-mer level
+      do i = 1, max_level
+         mer_size = real(i*matrix_size, dp)
+         mer_flops(i) = real(n_mers(i), dp)*2.0_dp*mer_size**3
+      end do
 
-      total_flops = monomer_flops + dimer_flops + trimer_flops
+      ! Total FLOPs
+      total_flops = sum(mer_flops)
 
+      ! Print breakdown
       print *, "Fragment breakdown:"
-      print *, "  Monomers: ", n_monomers, " (", monomer_flops/1.0e9_dp, " GFLOP)"
-      print *, "  Dimers:   ", n_dimers, " (", dimer_flops/1.0e9_dp, " GFLOP)"
-      print *, "  Trimers:  ", n_trimers, " (", trimer_flops/1.0e9_dp, " GFLOP)"
-      print *, "  Total:    ", fragment_count, " (", total_flops/1.0e9_dp, " GFLOP)"
+      do i = 1, max_level
+         if (n_mers(i) > 0) then
+            print '(a,i0,a,i0,a,f12.3,a)', "  ", i, "-mers:  ", n_mers(i), &
+               " (", mer_flops(i)/1.0e9_dp, " GFLOP)"
+         end if
+      end do
+      print '(a,i0,a,f12.3,a)', "  Total:    ", fragment_count, &
+         " (", total_flops/1.0e9_dp, " GFLOP)"
+
+      deallocate (n_mers, mer_flops)
+
    end subroutine calculate_exact_flops
 
    subroutine global_coordinator(world_comm, node_comm, total_fragments, polymers, max_level, node_leader_ranks, num_nodes)

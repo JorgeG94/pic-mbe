@@ -26,7 +26,8 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "IntelLLVM")
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "NVHPC")
   # set(standard_compile_flags "-traceback")
   set(standard_compile_flags
-      "-traceback -stdpar=gpu -Minfo=all -mp=gpu -acc=gpu -gpu=mem:separate")
+      "-cuda -traceback -stdpar=gpu -Minfo=all -mp=gpu -acc=gpu -gpu=mem:separate"
+  )
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "LLVMFlang")
   set(standard_compile_flags "")
 endif()
