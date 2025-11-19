@@ -5,6 +5,12 @@ A template repository for modern fortran projects
 
 See the instructions [here](https://fpm.fortran-lang.org/install/index.html)
 
+## How to build with nvhpc 
+
+```
+fpm install --prefix . --compiler mpifort --flag "-cuda -stdpar=gpu -mp=gpu -O3 -Minfo=all -acc=gpu -gpu=mem:separate -gpu=cc70 -Minfo=accel" --verbose --link-flag "-lcublas -lcudart -lcudafor"
+```
+
 If you are on a Linux distro and have any Fortran compiler installed, do:
 
 ```

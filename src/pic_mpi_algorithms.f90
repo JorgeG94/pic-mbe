@@ -39,22 +39,12 @@ module pic_mpi_algorithms
         B(i,j) = real(fragment_size * fragment_idx,dp)
         C(i,j) = 0.0_dp
       end do
-      !A = real(fragment_size * fragment_idx, dp)
-      !B = real(fragment_size * fragment_idx, dp)
-      !C = 0.0_dp
+
       call gemm_timer%start()
       !$omp target data use_device_addr(A,B,C)
       error = cublasDgemm_v2(handle, CUBLAS_OP_N, CUBLAS_OP_N, dims, dims, dims,&
       alpha, A, dims, B, dims, beta, C, dims)
       !$omp end target data
-      !print *, "ERROR", error
-      !do concurrent (j=1:dims, i=1:dims) 
-      ! sum_val = 0.0_real64
-      ! do k=1,dims
-      !  sum_val = sum_val + A(i,k) * B(k,j)
-      ! end do
-      ! C(i,j) = sum_val
-      !end do
 
       !call pic_gemm(A,B,C)
       istat = cudaDeviceSynchronize()
@@ -64,8 +54,9 @@ module pic_mpi_algorithms
 
       !print *, "Gemm for fragment", fragment_indices, " was ", elapsed_time, " seconds with size ", dims
       
-      !$omp target exit data map(delete: A,B,C)
+      !$omp target exit data map(release: A,B,C)
       deallocate(A, B, C)
+      istat = cublasDestroy(handle)
    end subroutine process_fragment
 
   subroutine calculate_exact_flops(polymers, fragment_count, max_level, matrix_size, total_flops)
