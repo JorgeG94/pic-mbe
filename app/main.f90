@@ -12,9 +12,11 @@ program hierarchical_mpi_mbe
    implicit none
 
    ! Fragment generation parameters
-   integer(default_int), parameter :: n_monomers = 30
-   integer(default_int), parameter :: max_level = 3
-   integer(default_int), parameter :: n = 1024  ! monomer matrix size
+   integer(default_int) :: n_monomers
+   integer(default_int) :: max_level
+   integer(default_int) :: n
+   integer :: narg
+   character(len=32) :: arg
 
    ! MPI wrappers
    type(comm_t) :: world_comm, node_comm
@@ -42,6 +44,23 @@ program hierarchical_mpi_mbe
    call MPI_Init(ierr)
    world_comm = comm_world()
    node_comm  = world_comm%split()   ! shared memory communicator
+   narg = command_argument_count()
+   n_monomers = 30
+   max_level = 3
+   n = 1024  ! monomer matrix size
+
+   if (narg >= 1) then
+     call get_command_argument(1, arg)
+     read(arg, *) n_monomers
+  end if
+  if (narg >= 2) then
+     call get_command_argument(2, arg)
+     read(arg, *) n
+  end if
+  if(narg >= 3) then
+    call get_command_argument(3, arg)
+    read(arg, *) max_level
+  end if
 
 if (world_comm%size() < 2) then
    if (world_comm%leader()) print *, "This program requires at least 2 processes."
@@ -129,11 +148,11 @@ end if
    ! Final timing and flops
    !==============================
    call world_comm%barrier()
-
    if (world_comm%leader()) then
       call timer%stop()
       elapsed_time = timer%get_elapsed_time()
       flops = 0.0_dp
+      print *, "N = ", n
       call calculate_exact_flops(polymers, fragment_count, max_level, n, flops)
 
       print *, "Total elapsed time for all fragments:", elapsed_time, "seconds"

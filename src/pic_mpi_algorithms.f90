@@ -2,6 +2,8 @@ module pic_mpi_algorithms
   use mpi_f08
   use mpi_comm_simple
   use pic_types
+  use cudafor
+  use cublas_v2
    !use pic_blas_interfaces, only: pic_gemm
    use pic_timer
   implicit none 
@@ -12,18 +14,27 @@ module pic_mpi_algorithms
       integer, intent(in) :: fragment_idx, fragment_size, matrix_size
       integer, intent(in) :: fragment_indices(fragment_size)
       real(dp), allocatable :: A(:,:), B(:,:), C(:,:)
+      type(cublasHandle) :: handle
       integer :: i,j,k
       type(timer_type) :: gemm_timer
       real(dp) :: elapsed_time
+      real(dp) :: sum_val
+      integer :: dims 
+      integer :: error
+      integer :: istat
+      real(dp), parameter :: alpha = 1.0_dp
+      real(dp), parameter :: beta = 0.0_dp
+      istat = cublasCreate(handle)
+
+
+      dims = fragment_size * matrix_size
       
       ! Allocate and initialize fragment matrix
-      allocate(A(fragment_size * matrix_size, fragment_size * matrix_size))
-      allocate(B(fragment_size * matrix_size, fragment_size * matrix_size))
-      allocate(C(fragment_size * matrix_size, fragment_size * matrix_size))
+      allocate(A(dims,dims), B(dims,dims), C(dims,dims))
 
 
       !$omp target enter data map(alloc: A,B,C)
-      do concurrent (j=1:matrix_size, i=1:matrix_size)
+      do concurrent (j=1:dims, i=1:dims)
         A(i,j) = real(fragment_size * fragment_idx,dp)
         B(i,j) = real(fragment_size * fragment_idx,dp)
         C(i,j) = 0.0_dp
@@ -32,15 +43,26 @@ module pic_mpi_algorithms
       !B = real(fragment_size * fragment_idx, dp)
       !C = 0.0_dp
       call gemm_timer%start()
-      do concurrent (j=1:matrix_size, i=1:matrix_size, k=1:matrix_size)
-        C(i,j) = C(i,j) + A(i,k) * B(k,j)
-      end do
+      !$omp target data use_device_addr(A,B,C)
+      error = cublasDgemm_v2(handle, CUBLAS_OP_N, CUBLAS_OP_N, dims, dims, dims,&
+      alpha, A, dims, B, dims, beta, C, dims)
+      !$omp end target data
+      !print *, "ERROR", error
+      !do concurrent (j=1:dims, i=1:dims) 
+      ! sum_val = 0.0_real64
+      ! do k=1,dims
+      !  sum_val = sum_val + A(i,k) * B(k,j)
+      ! end do
+      ! C(i,j) = sum_val
+      !end do
+
       !call pic_gemm(A,B,C)
+      istat = cudaDeviceSynchronize()
       call gemm_timer%stop()
       elapsed_time = gemm_timer%get_elapsed_time()
 
 
-      !print *, "Gemm for fragment", fragment_indices, " was ", elapsed_time, " seconds"
+      !print *, "Gemm for fragment", fragment_indices, " was ", elapsed_time, " seconds with size ", dims
       
       !$omp target exit data map(delete: A,B,C)
       deallocate(A, B, C)
