@@ -1,6 +1,6 @@
 program hierarchical_mpi_mbe
    use mpi_f08
-   use mpi_comm_simple        
+   use mpi_comm_simple
    use omp_lib
    !use pic_blas_interfaces, only: pic_gemm
    use pic_timer, only: timer_type
@@ -20,8 +20,8 @@ program hierarchical_mpi_mbe
 
    ! MPI wrappers
    type(comm_t) :: world_comm, node_comm
-     character(len=MPI_MAX_PROCESSOR_NAME) :: hostname
-  integer :: hostname_len, ierr
+   character(len=MPI_MAX_PROCESSOR_NAME) :: hostname
+   integer :: hostname_len, ierr
 
    ! Timing
    type(timer_type) :: timer
@@ -43,31 +43,29 @@ program hierarchical_mpi_mbe
    !==============================
    call MPI_Init(ierr)
    world_comm = comm_world()
-   node_comm  = world_comm%split()   ! shared memory communicator
+   node_comm = world_comm%split()   ! shared memory communicator
    narg = command_argument_count()
    n_monomers = 30
    max_level = 3
    n = 1024  ! monomer matrix size
 
    if (narg >= 1) then
-     call get_command_argument(1, arg)
-     read(arg, *) n_monomers
-  end if
-  if (narg >= 2) then
-     call get_command_argument(2, arg)
-     read(arg, *) n
-  end if
-  if(narg >= 3) then
-    call get_command_argument(3, arg)
-    read(arg, *) max_level
-  end if
+      call get_command_argument(1, arg)
+      read (arg, *) n_monomers
+   end if
+   if (narg >= 2) then
+      call get_command_argument(2, arg)
+      read (arg, *) n
+   end if
+   if (narg >= 3) then
+      call get_command_argument(3, arg)
+      read (arg, *) max_level
+   end if
 
-if (world_comm%size() < 2) then
-   if (world_comm%leader()) print *, "This program requires at least 2 processes."
-   call MPI_Abort(world_comm%get(), 1, ierr)
-end if
-
-
+   if (world_comm%size() < 2) then
+      if (world_comm%leader()) print *, "This program requires at least 2 processes."
+      call MPI_Abort(world_comm%get(), 1, ierr)
+   end if
 
    !==============================
    ! Determine node leaders
@@ -75,22 +73,22 @@ end if
    global_node_rank = -1
    if (node_comm%leader()) global_node_rank = world_comm%rank()
 
-   allocate(all_node_leader_ranks(world_comm%size()))
+   allocate (all_node_leader_ranks(world_comm%size()))
    call MPI_Allgather(global_node_rank, 1, MPI_INTEGER, all_node_leader_ranks, 1, MPI_INTEGER, world_comm%get(), ierr)
 
    num_nodes = count(all_node_leader_ranks /= -1)
    !print *, "RUNNING USING ", num_nodes, " NODES"
 ! After determining num_nodes and node sizes
-if (num_nodes > 1) then
-   ! Multi-node: warn if any node has only a coordinator
-   if (world_comm%size() < 3) then
-      if (world_comm%leader()) print *, "This program requires at least 3 processes."
-      call MPI_Abort(world_comm%get(), 1, ierr)
+   if (num_nodes > 1) then
+      ! Multi-node: warn if any node has only a coordinator
+      if (world_comm%size() < 3) then
+         if (world_comm%leader()) print *, "This program requires at least 3 processes."
+         call MPI_Abort(world_comm%get(), 1, ierr)
+      end if
    end if
-end if
-   allocate(node_leader_ranks(num_nodes))
+   allocate (node_leader_ranks(num_nodes))
    i = 0
-   do j = 1,world_comm%size()
+   do j = 1, world_comm%size()
       if (all_node_leader_ranks(j) /= -1) then
          i = i + 1
          node_leader_ranks(i) = all_node_leader_ranks(j)
@@ -102,9 +100,9 @@ end if
    !==============================
    if (world_comm%leader()) then
       n_expected_fragments = get_nfrags(n_monomers, max_level)
-      allocate(monomers(n_monomers))
-      allocate(polymers(n_expected_fragments, max_level))
-      allocate(fragments(n_expected_fragments))
+      allocate (monomers(n_monomers))
+      allocate (polymers(n_expected_fragments, max_level))
+      allocate (fragments(n_expected_fragments))
 
       print *, "Expected fragments = ", n_expected_fragments
 
@@ -124,12 +122,12 @@ end if
       call timer%start()
    end if
 
-   if (node_comm%leader() .eqv. .false.) then 
-     call MPI_Get_processor_name(hostname, hostname_len, ierr)
-  !print *, "Node:", trim(hostname), " node_comm rank:", node_comm%rank() - 1, " world rank:", world_comm%rank()
-  call omp_set_default_device(node_comm%rank() - 1)
-  !$acc set device_num(node_comm%rank() - 1)
-  end if
+   if (node_comm%leader() .eqv. .false.) then
+      call MPI_Get_processor_name(hostname, hostname_len, ierr)
+      !print *, "Node:", trim(hostname), " node_comm rank:", node_comm%rank() - 1, " world rank:", world_comm%rank()
+      call omp_set_default_device(node_comm%rank() - 1)
+      !$acc set device_num(node_comm%rank() - 1)
+   end if
 
    !==============================
    ! Role assignment
@@ -141,8 +139,6 @@ end if
    else
       call node_worker(world_comm, node_comm, n, max_level)
    end if
-
-
 
    !==============================
    ! Final timing and flops
@@ -157,7 +153,7 @@ end if
 
       print *, "Total elapsed time for all fragments:", elapsed_time, "seconds"
       print *, "Total flops ", flops
-      print *, "Estimated flop rate: ", flops / elapsed_time / 1.0e9_dp, " GFLOP/s"
+      print *, "Estimated flop rate: ", flops/elapsed_time/1.0e9_dp, " GFLOP/s"
    end if
 
    !==============================
