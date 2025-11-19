@@ -14,34 +14,34 @@ module pic_fragment
       procedure :: print_indices
    end type pic_fragment_block
 
-   type :: pic_fragment_type 
-    integer(default_int), allocatable :: indices(:)
-    integer(default_int) :: n_momonomers
-    integer(default_int) :: n_rows
-    integer(default_int) :: estimated_cost
+   type :: pic_fragment_type
+      integer(default_int), allocatable :: indices(:)
+      integer(default_int) :: n_momonomers
+      integer(default_int) :: n_rows
+      integer(default_int) :: estimated_cost
 
-    contains 
-    procedure :: get_estimated_cost 
+   contains
+      procedure :: get_estimated_cost
    end type
 
 contains
 
-function get_estimated_cost(self) result(estimated_cost)
-  class(pic_fragment_type), intent(in) :: self 
-  integer(default_int) :: estimated_cost 
+   function get_estimated_cost(self) result(estimated_cost)
+      class(pic_fragment_type), intent(in) :: self
+      integer(default_int) :: estimated_cost
 
-  estimated_cost = self%estimated_cost
-end function get_estimated_cost
+      estimated_cost = self%estimated_cost
+   end function get_estimated_cost
 
-function new_pic_fragment(indices, n_rows) result(fragment)
-    integer(default_int), intent(in) :: indices(:)
-    integer(default_int), intent(in) :: n_rows
-    type(pic_fragment_type) :: fragment
+   function new_pic_fragment(indices, n_rows) result(fragment)
+      integer(default_int), intent(in) :: indices(:)
+      integer(default_int), intent(in) :: n_rows
+      type(pic_fragment_type) :: fragment
 
-    fragment%n_rows = n_rows
-    fragment%estimated_cost = n_rows * n_rows
-    allocate(fragment%indices, source=indices)
-end function new_pic_fragment
+      fragment%n_rows = n_rows
+      fragment%estimated_cost = n_rows*n_rows
+      allocate (fragment%indices, source=indices)
+   end function new_pic_fragment
 
    function count_nonzeros(row) result(count)
       integer(default_int), intent(in) :: row(:)
@@ -59,6 +59,5 @@ end function new_pic_fragment
       print *, to_char(self%indices)
 
    end subroutine print_indices
-
 
 end module pic_fragment

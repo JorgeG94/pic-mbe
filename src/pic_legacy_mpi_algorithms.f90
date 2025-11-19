@@ -1,6 +1,6 @@
-module pic_mpi_algorithms
-   use mpi_f08
-   use pic_legacy_mpi 
+module pic_legacy_mpi_algorithms
+   use mpi
+   use pic_legacy_mpi
    use pic_types
    use cudafor
    use cublas_v2
@@ -111,7 +111,7 @@ contains
 
       integer :: current_fragment, finished_nodes
       integer :: request_source, dummy_msg
-      type(MPI_Status) :: status, local_status
+      integer :: status(MPI_STATUS_SIZE), local_status(MPI_STATUS_SIZE)
       logical :: handling_local_workers
       logical :: has_pending
 
@@ -131,8 +131,8 @@ contains
          ! Remote node coordinator requests
          call iprobe(world_comm, MPI_ANY_SOURCE, 300, has_pending, status)
          if (has_pending) then
-            call recv(world_comm, dummy_msg, status%MPI_SOURCE, 300)
-            request_source = status%MPI_SOURCE
+            call recv(world_comm, dummy_msg, status(MPI_SOURCE), 300)
+            request_source = status(MPI_SOURCE)
 
             if (current_fragment >= 1) then
                call send_fragment_to_node(world_comm, current_fragment, polymers, max_level, request_source)
@@ -147,13 +147,13 @@ contains
          if (handling_local_workers .and. local_finished_workers < node_comm%size() - 1) then
             call iprobe(node_comm, MPI_ANY_SOURCE, 200, has_pending, local_status)
             if (has_pending) then
-               call recv(node_comm, local_dummy, local_status%MPI_SOURCE, 200)
+               call recv(node_comm, local_dummy, local_status(MPI_SOURCE), 200)
 
                if (current_fragment >= 1) then
-                  call send_fragment_to_worker(node_comm, current_fragment, polymers, max_level, local_status%MPI_SOURCE)
+                  call send_fragment_to_worker(node_comm, current_fragment, polymers, max_level, local_status(MPI_SOURCE))
                   current_fragment = current_fragment - 1
                else
-                  call send(node_comm, -1, local_status%MPI_SOURCE, 202)
+                  call send(node_comm, -1, local_status(MPI_SOURCE), 202)
                   local_finished_workers = local_finished_workers + 1
                end if
             end if
@@ -220,7 +220,7 @@ contains
       integer(int32) :: fragment_idx, fragment_size, ierr, dummy_msg
       integer(int32) :: finished_workers
       integer(int32), allocatable :: fragment_indices(:)
-      type(MPI_Status) :: status, global_status
+      integer :: status(MPI_STATUS_SIZE), global_status(MPI_STATUS_SIZE)
       logical :: local_message_pending, more_fragments
       integer(int32) :: local_dummy
 
@@ -238,23 +238,23 @@ contains
                call send(world_comm, dummy_msg, 0, 300)
                call recv(world_comm, fragment_idx, 0, MPI_ANY_TAG, global_status)
 
-               if (global_status%MPI_TAG == 301) then
+               if (global_status(MPI_TAG) == 301) then
                   call recv(world_comm, fragment_size, 0, 301, global_status)
                   allocate (fragment_indices(fragment_size))
                   call recv(world_comm, fragment_indices, 0, 301, global_status)
 
-                  call send(node_comm, fragment_idx, status%MPI_SOURCE, 201)
-                  call send(node_comm, fragment_size, status%MPI_SOURCE, 201)
-                  call send(node_comm, fragment_indices, status%MPI_SOURCE, 201)
+                  call send(node_comm, fragment_idx, status(MPI_SOURCE), 201)
+                  call send(node_comm, fragment_size, status(MPI_SOURCE), 201)
+                  call send(node_comm, fragment_indices, status(MPI_SOURCE), 201)
 
                   deallocate (fragment_indices)
                else
-                  call send(node_comm, -1, status%MPI_SOURCE, 202)
+                  call send(node_comm, -1, status(MPI_SOURCE), 202)
                   finished_workers = finished_workers + 1
                   more_fragments = .false.
                end if
             else
-               call send(node_comm, -1, status%MPI_SOURCE, 202)
+               call send(node_comm, -1, status(MPI_SOURCE), 202)
                finished_workers = finished_workers + 1
             end if
          end if
@@ -270,7 +270,7 @@ contains
 
       integer(int32) :: fragment_idx, fragment_size, ierr, dummy_msg
       integer(int32), allocatable :: fragment_indices(:)
-      type(MPI_Status) :: status
+      integer :: status(MPI_STATUS_SIZE)
 
       dummy_msg = 0
 
@@ -278,7 +278,7 @@ contains
          call send(node_comm, dummy_msg, 0, 200)
          call recv(node_comm, fragment_idx, 0, MPI_ANY_TAG, status)
 
-         select case (status%MPI_TAG)
+         select case (status(MPI_TAG))
          case (201)
             call recv(node_comm, fragment_size, 0, 201, status)
             allocate (fragment_indices(fragment_size))
@@ -293,4 +293,4 @@ contains
       end do
    end subroutine node_worker
 
-end module pic_mpi_algorithms
+end module pic_legacy_mpi_algorithms

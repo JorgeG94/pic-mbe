@@ -7,9 +7,8 @@ module pic_mbe
    public :: generate_fragment_list
    public :: get_nfrags
 
-
 contains
-   
+
    pure function get_nfrags(n_monomers, max_level) result(n_expected_fragments)
       integer(default_int), intent(in) :: n_monomers, max_level
       integer(default_int) :: n_expected_fragments

@@ -1,5 +1,5 @@
-module mpi_comm_simple
-   use mpi_f08
+module pic_legacy_mpi
+   use mpi
    use pic_types, only: int32
    implicit none
    private
@@ -10,7 +10,7 @@ module mpi_comm_simple
 
    type :: comm_t
       private
-      type(MPI_Comm) :: m_comm = MPI_COMM_NULL
+      integer :: m_comm = MPI_COMM_NULL
       integer(int32) :: m_rank = -1
       integer(int32) :: m_size = -1
       logical :: is_valid = .false.
@@ -57,7 +57,7 @@ module mpi_comm_simple
 contains
 
    function create_comm_from_mpi(mpi_comm_in) result(comm)
-      type(MPI_Comm), intent(in) :: mpi_comm_in
+      integer, intent(in) :: mpi_comm_in
       type(comm_t) :: comm
       integer(int32) :: ierr
 
@@ -74,7 +74,7 @@ contains
 
    function create_world_comm() result(comm)
       type(comm_t) :: comm
-      type(MPI_Comm) :: dup_comm
+      integer :: dup_comm
       integer(int32) :: ierr
 
       call MPI_Comm_dup(MPI_COMM_WORLD, dup_comm, ierr)
@@ -118,7 +118,7 @@ contains
 
    function comm_get(this) result(mpi_comm_out)
       class(comm_t), intent(in) :: this
-      type(MPI_Comm) :: mpi_comm_out
+      integer :: mpi_comm_out
 
       if (.not. this%is_valid) then
          error stop "Cannot get MPI_Comm from null Comm"
@@ -135,7 +135,7 @@ contains
    function comm_split_shared(this) result(new_comm)
       class(comm_t), intent(in) :: this
       type(comm_t) :: new_comm
-      type(MPI_Comm) :: mpi_comm_new
+      integer :: mpi_comm_new
       integer(int32) :: ierr
 
       if (.not. this%is_valid) then
@@ -151,7 +151,7 @@ contains
       class(comm_t), intent(in) :: this
       integer, intent(in) :: color
       type(comm_t) :: new_comm
-      type(MPI_Comm) :: mpi_comm_new
+      integer :: mpi_comm_new
       integer(int32) :: ierr
 
       if (.not. this%is_valid) then
@@ -203,7 +203,7 @@ contains
    function comm_duplicate(this) result(new_comm)
       class(comm_t), intent(in) :: this
       type(comm_t) :: new_comm
-      type(MPI_Comm) :: mpi_comm_new
+      integer :: mpi_comm_new
       integer(int32) :: ierr
 
       if (.not. this%is_valid) then
@@ -241,12 +241,13 @@ contains
       integer(int32), intent(in) :: source
       integer(int32), intent(in) :: tag
       integer(int32) :: ierr
-      type(MPI_Status), intent(out), optional :: status
+      integer, intent(out), optional :: status(MPI_STATUS_SIZE)
+      integer :: stat(MPI_STATUS_SIZE)
 
       if (present(status)) then
          call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
       else
-         call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, MPI_STATUS_IGNORE, ierr)
+         call MPI_Recv(data, 1, MPI_INTEGER, source, tag, comm%m_comm, stat, ierr)
       end if
    end subroutine comm_recv_integer
 
@@ -255,7 +256,7 @@ contains
       integer(int32), allocatable, intent(out) :: data(:)
       integer(int32), intent(in) :: source
       integer(int32), intent(in) :: tag
-      type(MPI_Status) :: status
+      integer :: status(MPI_STATUS_SIZE)
       integer(int32) :: count
       integer(int32) :: ierr
 
@@ -265,7 +266,7 @@ contains
 
       ! Allocate and receive
       allocate (data(count))
-      call MPI_Recv(data, count, MPI_INTEGER, source, tag, comm%m_comm, MPI_STATUS_IGNORE, ierr)
+      call MPI_Recv(data, count, MPI_INTEGER, source, tag, comm%m_comm, status, ierr)
    end subroutine comm_recv_integer_array
 
    subroutine comm_iprobe(comm, source, tag, message_pending, status)
@@ -273,7 +274,7 @@ contains
       integer(int32), intent(in) :: source
       integer(int32), intent(in) :: tag
       logical, intent(out) :: message_pending
-      type(MPI_Status), intent(out) :: status
+      integer, intent(out) :: status(MPI_STATUS_SIZE)
       integer(int32) :: ierr
 
       call MPI_Iprobe(source, tag, comm%m_comm, message_pending, status, ierr)
@@ -290,4 +291,4 @@ contains
       end if
    end subroutine comm_finalize
 
-end module mpi_comm_simple
+end module pic_legacy_mpi

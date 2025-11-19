@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.22)
 cmake_policy(SET CMP0144 NEW)
 
 project(
-  "demo"
+  "mbe"
   LANGUAGES Fortran
   VERSION 0.0
   DESCRIPTION "ADD YOUR DESCRIPTION HERE")
 
-set(project_name demo)
+set(project_name mbe)
 set(main_lib ${project_name})
-set(exe_name exe_${project_name})
+set(exe_name ${project_name}.exe)
 set(all_targets ${main_lib} ${exe_name})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -20,7 +20,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 # see cmake/ subdirectory for this
 include(demo_status)
 
-option(ENABLE_TESTING "Enable testing for ${project_name}" ON)
+option(ENABLE_TESTING "Enable testing for ${project_name}" OFF)
 
 add_subdirectory(cmake)
 
@@ -39,6 +39,10 @@ find_package(
   MPI
   COMPONENTS Fortran
   REQUIRED)
+find_package(
+  OpenMP
+  COMPONENTS Fortran
+  REQUIRED)
 
 target_link_libraries(${main_lib} PRIVATE pic::pic)
 
@@ -53,12 +57,14 @@ endif()
 
 set_target_properties(${main_lib} PROPERTIES Fortran_MODULE_DIRECTORY
                                              ${CMAKE_BINARY_DIR}/modules)
-target_link_libraries(${main_lib} PRIVATE MPI::MPI_Fortran)
+target_link_libraries(${main_lib} PRIVATE MPI::MPI_Fortran
+                                          OpenMP::OpenMP_Fortran)
 
 add_executable(${exe_name} ${PROJECT_SOURCE_DIR}/app/main.f90)
 
 target_include_directories(${exe_name} PRIVATE "${CMAKE_BINARY_DIR}/modules")
-target_link_libraries(${exe_name} PRIVATE ${main_lib} MPI::MPI_Fortran)
+target_link_libraries(${exe_name} PRIVATE ${main_lib} MPI::MPI_Fortran
+                                          OpenMP::OpenMP_Fortran)
 
 foreach(tgt ${all_targets})
   message(STATUS "${tgt}")

@@ -1,6 +1,6 @@
 program hierarchical_mpi_mbe
-   use mpi_f08
-   use mpi_comm_simple
+   use mpi
+   use pic_legacy_mpi
    use omp_lib
    !use pic_blas_interfaces, only: pic_gemm
    use pic_timer, only: timer_type
@@ -8,7 +8,7 @@ program hierarchical_mpi_mbe
    use pic_io, only: to_char
    use pic_mbe, only: get_nfrags, create_monomer_list, generate_fragment_list
    use pic_fragment, only: pic_fragment_block, count_nonzeros
-   use pic_mpi_algorithms
+   use pic_legacy_mpi_algorithms
    implicit none
 
    ! Fragment generation parameters
