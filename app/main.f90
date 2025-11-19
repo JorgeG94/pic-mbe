@@ -1,7 +1,8 @@
 program hierarchical_mpi_mbe
    use mpi_f08
    use mpi_comm_simple        
-   use pic_blas_interfaces, only: pic_gemm
+   use omp_lib
+   !use pic_blas_interfaces, only: pic_gemm
    use pic_timer, only: timer_type
    use pic_types, only: dp, default_int
    use pic_io, only: to_char
@@ -11,13 +12,14 @@ program hierarchical_mpi_mbe
    implicit none
 
    ! Fragment generation parameters
-   integer(default_int), parameter :: n_monomers = 50
+   integer(default_int), parameter :: n_monomers = 30
    integer(default_int), parameter :: max_level = 3
-   integer(default_int), parameter :: n = 256  ! monomer matrix size
+   integer(default_int), parameter :: n = 1024  ! monomer matrix size
 
    ! MPI wrappers
    type(comm_t) :: world_comm, node_comm
-   integer :: ierr
+     character(len=MPI_MAX_PROCESSOR_NAME) :: hostname
+  integer :: hostname_len, ierr
 
    ! Timing
    type(timer_type) :: timer
@@ -41,10 +43,12 @@ program hierarchical_mpi_mbe
    world_comm = comm_world()
    node_comm  = world_comm%split()   ! shared memory communicator
 
-   if (world_comm%size() < 3) then
-      if (world_comm%leader()) print *, "This program requires at least 3 processes."
-      call MPI_Abort(world_comm%get(), 1, ierr)
-   end if
+if (world_comm%size() < 2) then
+   if (world_comm%leader()) print *, "This program requires at least 2 processes."
+   call MPI_Abort(world_comm%get(), 1, ierr)
+end if
+
+
 
    !==============================
    ! Determine node leaders
@@ -56,6 +60,15 @@ program hierarchical_mpi_mbe
    call MPI_Allgather(global_node_rank, 1, MPI_INTEGER, all_node_leader_ranks, 1, MPI_INTEGER, world_comm%get(), ierr)
 
    num_nodes = count(all_node_leader_ranks /= -1)
+   !print *, "RUNNING USING ", num_nodes, " NODES"
+! After determining num_nodes and node sizes
+if (num_nodes > 1) then
+   ! Multi-node: warn if any node has only a coordinator
+   if (world_comm%size() < 3) then
+      if (world_comm%leader()) print *, "This program requires at least 3 processes."
+      call MPI_Abort(world_comm%get(), 1, ierr)
+   end if
+end if
    allocate(node_leader_ranks(num_nodes))
    i = 0
    do j = 1,world_comm%size()
@@ -92,6 +105,13 @@ program hierarchical_mpi_mbe
       call timer%start()
    end if
 
+   if (node_comm%leader() .eqv. .false.) then 
+     call MPI_Get_processor_name(hostname, hostname_len, ierr)
+  !print *, "Node:", trim(hostname), " node_comm rank:", node_comm%rank() - 1, " world rank:", world_comm%rank()
+  call omp_set_default_device(node_comm%rank() - 1)
+  !$acc set device_num(node_comm%rank() - 1)
+  end if
+
    !==============================
    ! Role assignment
    !==============================
@@ -102,6 +122,8 @@ program hierarchical_mpi_mbe
    else
       call node_worker(world_comm, node_comm, n, max_level)
    end if
+
+
 
    !==============================
    ! Final timing and flops

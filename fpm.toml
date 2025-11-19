@@ -18,11 +18,7 @@ external-modules = ["mpi_f08"]
 [[executable]]
 name = "mbe"
 source-dir = "app"
-main = "mbe.f90"
-[[test]]
-name = "sample"
-source-dir = "test"
-main = "main_tests.f90"
+main = "main.f90"
 [install]
 library = true
 
@@ -32,9 +28,9 @@ implicit-external = true
 source-form = "free"
 
 [dependencies]
-openmp = "*"
+#openmp = "*"
 #mpi = "*"
-test-drive.git = "https://github.com/fortran-lang/test-drive"
+#test-drive.git = "https://github.com/fortran-lang/test-drive"
 pic = { git = "https://github.com/JorgeG94/pic.git", branch = "main"}
 
 [extra.fortitude.check]

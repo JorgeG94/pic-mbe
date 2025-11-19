@@ -22,6 +22,7 @@ module pic_mpi_algorithms
       allocate(C(fragment_size * matrix_size, fragment_size * matrix_size))
 
 
+      !$omp target enter data map(alloc: A,B,C)
       do concurrent (j=1:matrix_size, i=1:matrix_size)
         A(i,j) = real(fragment_size * fragment_idx,dp)
         B(i,j) = real(fragment_size * fragment_idx,dp)
@@ -38,8 +39,10 @@ module pic_mpi_algorithms
       call gemm_timer%stop()
       elapsed_time = gemm_timer%get_elapsed_time()
 
-      print *, "Gemm for fragment", fragment_indices, " was ", elapsed_time, " seconds"
+
+      !print *, "Gemm for fragment", fragment_indices, " was ", elapsed_time, " seconds"
       
+      !$omp target exit data map(delete: A,B,C)
       deallocate(A, B, C)
    end subroutine process_fragment
 
